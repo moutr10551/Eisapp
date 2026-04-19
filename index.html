@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ein Moment · Eissorten</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+  :root {
+    --cream: #faf6f0; --sand: #e8ddd0; --mocha: #6b4f3a;
+    --espresso: #2c1a0e; --mint: #7abfb0; --rose: #d4826a; --muted: #9a8070;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--espresso); min-height: 100vh; padding-bottom: 100px; }
+  header { background: var(--espresso); color: var(--cream); padding: 20px; display: flex; align-items: baseline; gap: 10px; }
+  header h1 { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 400; }
+  header span { font-size: 0.75rem; color: var(--sand); letter-spacing: 0.08em; text-transform: uppercase; }
+  .section { padding: 20px; border-bottom: 1px solid var(--sand); }
+  .section-label { font-size: 0.65rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  #apiKeySection { background: #fff8f2; border-bottom: 2px solid var(--rose); }
+  #apiKeySection.saved { border-bottom-color: var(--mint); }
+  .api-row { display: flex; gap: 8px; }
+  .api-input { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; padding: 10px 12px; border: 1px solid var(--sand); border-radius: 8px; background: white; color: var(--espresso); }
+  .api-input:focus { outline: 2px solid var(--mint); }
+  .btn-small { background: var(--espresso); color: var(--cream); border: none; border-radius: 8px; padding: 10px 16px; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+  .key-saved { font-size: 0.72rem; color: var(--mint); margin-top: 6px; display: none; }
+  .upload-zone { border: 2px dashed var(--sand); border-radius: 16px; padding: 32px 20px; text-align: center; background: white; position: relative; cursor: pointer; }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .upload-text { font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+  .upload-text strong { color: var(--mocha); display: block; font-size: 1rem; margin-bottom: 4px; }
+  #previewWrap { margin-top: 14px; display: none; }
+  #previewWrap img { width: 100%; max-height: 260px; object-fit: cover; border-radius: 10px; }
+  .btn-analyze { margin-top: 14px; width: 100%; background: var(--mint); color: white; border: none; border-radius: 12px; padding: 14px; font-family: 'DM Serif Display', serif; font-size: 1.05rem; cursor: pointer; display: none; }
+  .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+  .analyzing-bar { display: none; align-items: center; gap: 10px; margin-top: 12px; padding: 12px 14px; background: #f0faf8; border-radius: 10px; font-size: 0.85rem; color: var(--mint); }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--sand); border-top-color: var(--mint); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { font-size: 0.8rem; color: var(--rose); margin-top: 8px; display: none; padding: 10px 12px; background: #fff5f3; border-radius: 8px; border: 1px solid #f8ccc4; }
+  #sortenSection { display: none; }
+  .sorten-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .sorte-item { display: flex; align-items: center; gap: 8px; background: white; border: 1px solid var(--sand); border-radius: 10px; padding: 10px 12px; }
+  .sorte-badge { font-size: 0.6rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .badge-milch { background: #fff3e8; color: var(--mocha); border: 1px solid #e8c9a0; }
+  .badge-sorbet { background: #e8f8f5; color: #3a8a7a; border: 1px solid #a0d8ce; }
+  .badge-unbekannt { background: var(--sand); color: var(--muted); border: 1px solid #ccc; }
+  .sorte-names { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .sorte-name-de { font-size: 0.85rem; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; color: var(--espresso); width: 100%; }
+  .sorte-name-en { font-size: 0.75rem; background: transparent; border: none; outline: none; font-family: 'DM Sans', sans-serif; color: var(--muted); width: 100%; }
+  .sorte-type-select { font-size: 0.75rem; border: 1px solid var(--sand); border-radius: 6px; padding: 3px 6px; background: white; color: var(--muted); font-family: 'DM Sans', sans-serif; cursor: pointer; flex-shrink: 0; }
+  .btn-remove { background: none; border: none; color: var(--sand); font-size: 1.1rem; cursor: pointer; padding: 2px; line-height: 1; flex-shrink: 0; }
+  .btn-add-sorte { background: none; border: 2px dashed var(--sand); border-radius: 10px; padding: 10px; width: 100%; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; color: var(--muted); cursor: pointer; }
+  #textSection { display: none; }
+  .text-preview-wrap { background: white; border: 1px solid var(--sand); border-radius: 12px; overflow: hidden; }
+  .text-preview-wrap textarea { width: 100%; min-height: 200px; padding: 16px; font-size: 0.85rem; line-height: 1.7; font-family: 'DM Sans', sans-serif; color: var(--espresso); border: none; outline: none; resize: vertical; background: white; }
+  .char-count { padding: 6px 14px; font-size: 0.7rem; color: var(--muted); border-top: 1px solid var(--sand); text-align: right; }
+  .btn-share { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #25D366; color: white; border: none; border-radius: 16px; padding: 18px; font-family: 'DM Serif Display', serif; font-size: 1.15rem; cursor: pointer; display: none; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 24px rgba(37,211,102,0.35); }
+  .wa-icon { width: 22px; height: 22px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ein Moment</h1>
+  <span>Eissorten Update</span>
+</header>
+
+<div class="section" id="apiKeySection">
+  <div class="section-label">Gemini API Key</div>
+  <div class="api-row">
+    <input class="api-input" type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+    <button class="btn-small" onclick="saveKey()">Speichern</button>
+  </div>
+  <div class="key-saved" id="keySaved">&#10003; Key gespeichert</div>
+</div>
+
+<div class="section">
+  <div class="section-label">Foto vom Schild</div>
+  <div class="upload-zone">
+    <input type="file" id="fileInput" accept="image/*" onchange="handleFile(event)">
+    <div class="upload-icon">&#128248;</div>
+    <div class="upload-text">
+      <strong>Foto aufnehmen oder hochladen</strong>
+      Kamera &middot; Galerie &middot; Foto aus WhatsApp
+    </div>
+  </div>
+  <div id="previewWrap"><img id="preview" src="" alt="Vorschau"></div>
+  <div class="analyzing-bar" id="analyzingBar">
+    <div class="spinner"></div>
+    <span>Sorten werden erkannt&hellip;</span>
+  </div>
+  <div class="error-msg" id="errorMsg"></div>
+  <button class="btn-analyze" id="analyzeBtn" onclick="analyzeBild()">&#128269; Sorten erkennen</button>
+</div>
+
+<div class="section" id="sortenSection">
+  <div class="section-label">Erkannte Sorten &middot; tippe zum Bearbeiten</div>
+  <div class="sorten-list" id="sortenList"></div>
+  <button class="btn-add-sorte" onclick="addSorte()">+ Sorte hinzuf&uuml;gen</button>
+</div>
+
+<div class="section" id="textSection">
+  <div class="section-label">Nachrichtentext</div>
+  <div class="text-preview-wrap">
+    <textarea id="textPreview" oninput="updateCharCount()"></textarea>
+    <div class="char-count" id="charCount">0 Zeichen</div>
+  </div>
+</div>
+
+<button class="btn-share" id="shareBtn" onclick="shareWhatsApp()">
+  <svg class="wa-icon" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+  In WhatsApp teilen
+</button>
+
+<script>
+var currentImage = null;
+var sorten = [];
+
+window.addEventListener('load', function() {
+  var saved = localStorage.getItem('gemini_key');
+  if (saved) {
+    document.getElementById('apiKeyInput').value = saved;
+    document.getElementById('keySaved').style.display = 'block';
+    document.getElementById('apiKeySection').classList.add('saved');
+  }
+});
+
+function saveKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) return;
+  localStorage.setItem('gemini_key', key);
+  document.getElementById('keySaved').style.display = 'block';
+  document.getElementById('apiKeySection').classList.add('saved');
+}
+
+function getKey() {
+  return localStorage.getItem('gemini_key') || document.getElementById('apiKeyInput').value.trim();
+}
+
+function handleFile(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    currentImage = e.target.result;
+    document.getElementById('preview').src = currentImage;
+    document.getElementById('previewWrap').style.display = 'block';
+    document.getElementById('analyzeBtn').style.display = 'block';
+    document.getElementById('errorMsg').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function showError(msg) {
+  var el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function analyzeBild() {
+  var key = getKey();
+  if (!key) { showError('Bitte zuerst Gemini API Key eingeben und speichern.'); return; }
+  if (!currentImage) return;
+
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('analyzingBar').style.display = 'flex';
+  document.getElementById('errorMsg').style.display = 'none';
+
+  try {
+    var base64 = currentImage.split(',')[1];
+    var mimeType = currentImage.split(';')[0].split(':')[1];
+
+    var modelsResp = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + key);
+    var modelsData = await modelsResp.json();
+    var allModels = (modelsData.models || [])
+      .filter(function(m) { return (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1; })
+      .map(function(m) { return m.name.replace('models/', ''); });
+
+    var preferred = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    var chosenModel = null;
+    for (var i = 0; i < preferred.length; i++) {
+      for (var j = 0; j < allModels.length; j++) {
+        if (allModels[j] === preferred[i] || allModels[j].indexOf(preferred[i]) === 0) {
+          chosenModel = allModels[j]; break;
+        }
+      }
+      if (chosenModel) break;
+    }
+    if (!chosenModel) throw new Error('Kein passendes Modell gefunden. Verfuegbar: ' + allModels.slice(0,5).join(', '));
+
+    var prompt = [
+      'Du analysierst ein Foto eines Eissortenschilds eines deutschen Eisladens.',
+      'Extrahiere alle Eissorten die du auf dem Bild erkennst.',
+      'Fuer jede Sorte: (1) bestimme ob es Milcheis oder Sorbet ist,',
+      '(2) uebersetz den Namen ins Englische.',
+      'Uebersetzungsregeln: Zutaten uebersetzen (Schokolade=Chocolate, Vanille=Vanilla, Erdbeere=Strawberry,',
+      'Melone=Melon, Stachelbeere=Gooseberry, Pflaume=Plum, Zimt=Cinnamon, Zitrone=Lemon,',
+      'Ingwer=Ginger, Joghurt=Yoghurt, Honig=Honey, Mandel=Almond, Kardamom=Cardamom,',
+      'Maracuja=Passion Fruit, Himbeere=Raspberry, Heidelbeere=Blueberry, Mango=Mango,',
+      'Karamell=Caramel, Pistazie=Pistachio, Haselnuss=Hazelnut, Kokos=Coconut).',
+      'Eigennamen und Abkuerzungen unveraendert lassen.',
+      'Antworte NUR mit einem JSON Array, kein Markdown, keine Backticks, keine Erklaerungen.',
+      'Format: [{"name":"Vanille","name_en":"Vanilla","typ":"milch"},{"name":"Mango","name_en":"Mango","typ":"sorbet"}]',
+      'Typ ist milch, sorbet oder unbekannt.',
+      'Wenn keine Sorten erkennbar: []'
+    ].join(' ');
+
+    var resp = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + chosenModel + ':generateContent?key=' + key,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ inline_data: { mime_type: mimeType, data: base64 } }, { text: prompt }] }]
+        })
+      }
+    );
+
+    if (!resp.ok) {
+      var err = await resp.json();
+      throw new Error(err.error ? err.error.message : 'API Fehler ' + resp.status);
+    }
+
+    var data = await resp.json();
+    var rawText = '';
+    try { rawText = data.candidates[0].content.parts[0].text; } catch(e) { rawText = '[]'; }
+    var clean = rawText.replace(/```json/g,'').replace(/```/g,'').trim();
+    sorten = JSON.parse(clean);
+
+    if (sorten.length === 0) showError('Keine Sorten erkannt. Sorten manuell hinzufuegen.');
+
+    renderSorten();
+    buildText();
+    document.getElementById('sortenSection').style.display = 'block';
+    document.getElementById('textSection').style.display = 'block';
+    document.getElementById('shareBtn').style.display = 'flex';
+
+  } catch(e) {
+    showError('Fehler: ' + e.message);
+  } finally {
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('analyzingBar').style.display = 'none';
+  }
+}
+
+function renderSorten() {
+  var list = document.getElementById('sortenList');
+  list.innerHTML = '';
+  sorten.forEach(function(s, i) {
+    var item = document.createElement('div');
+    item.className = 'sorte-item';
+    var bc = 'badge-' + (s.typ || 'unbekannt');
+    var bl = s.typ === 'milch' ? '&#x1F95B; Milch' : s.typ === 'sorbet' ? '&#x1F331; Sorbet' : '&#x2753;';
+    item.innerHTML =
+      '<span class="sorte-badge ' + bc + '">' + bl + '</span>' +
+      '<div class="sorte-names">' +
+        '<input class="sorte-name-de" value="' + esc(s.name || '') + '" placeholder="Deutsch" data-i="' + i + '" data-f="name">' +
+        '<input class="sorte-name-en" value="' + esc(s.name_en || '') + '" placeholder="English" data-i="' + i + '" data-f="name_en">' +
+      '</div>' +
+      '<select class="sorte-type-select" data-i="' + i + '">' +
+        '<option value="milch"' + (s.typ==='milch'?' selected':'') + '>Milch</option>' +
+        '<option value="sorbet"' + (s.typ==='sorbet'?' selected':'') + '>Sorbet</option>' +
+        '<option value="unbekannt"' + (s.typ==='unbekannt'?' selected':'') + '>?</option>' +
+      '</select>' +
+      '<button class="btn-remove" data-i="' + i + '">&#x2715;</button>';
+    list.appendChild(item);
+  });
+
+  list.querySelectorAll('.sorte-name-de,.sorte-name-en').forEach(function(inp) {
+    inp.addEventListener('input', function() {
+      sorten[+this.dataset.i][this.dataset.f] = this.value;
+      buildText();
+    });
+  });
+  list.querySelectorAll('.sorte-type-select').forEach(function(sel) {
+    sel.addEventListener('change', function() {
+      sorten[+this.dataset.i].typ = this.value;
+      renderSorten(); buildText();
+    });
+  });
+  list.querySelectorAll('.btn-remove').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      sorten.splice(+this.dataset.i, 1);
+      renderSorten(); buildText();
+    });
+  });
+}
+
+function esc(s) { return s.replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function addSorte() {
+  sorten.push({ name: '', name_en: '', typ: 'unbekannt' });
+  renderSorten(); buildText();
+  setTimeout(function() {
+    var inputs = document.querySelectorAll('.sorte-name-de');
+    if (inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+
+function buildText() {
+  var now = new Date();
+  var datum = now.toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit', year:'numeric' });
+  var uhrzeit = now.toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' });
+
+  var milch = sorten.filter(function(s) { return s.typ==='milch' && (s.name||'').trim(); });
+  var sorbet = sorten.filter(function(s) { return s.typ==='sorbet' && (s.name||'').trim(); });
+  var unbek = sorten.filter(function(s) { return s.typ==='unbekannt' && (s.name||'').trim(); });
+
+  var L = [];
+
+  L.push('🍦 ein Moment – Aktuelle Eissorten');
+  L.push('📅 ' + datum + ' · ' + uhrzeit + ' Uhr');
+  L.push('');
+  if (milch.length) { L.push('🥛 *Milcheis*'); milch.forEach(function(s){L.push('· '+s.name);}); L.push(''); }
+  if (sorbet.length) { L.push('🌱 *Sorbets* (vegan 🌿)'); sorbet.forEach(function(s){L.push('· '+s.name);}); L.push(''); }
+  if (unbek.length) { unbek.forEach(function(s){L.push('· '+s.name);}); L.push(''); }
+  L.push('📍 Lehrter Str. 26a, Berlin-Moabit');
+  L.push('');
+  L.push('——————————');
+  L.push('');
+  L.push('🍦 ein Moment – Today\'s Flavours');
+  L.push('');
+  if (milch.length) { L.push('🥛 *Ice Cream*'); milch.forEach(function(s){L.push('· '+(s.name_en||s.name));}); L.push(''); }
+  if (sorbet.length) { L.push('🌱 *Sorbets* (vegan 🌿)'); sorbet.forEach(function(s){L.push('· '+(s.name_en||s.name));}); L.push(''); }
+  if (unbek.length) { unbek.forEach(function(s){L.push('· '+(s.name_en||s.name));}); L.push(''); }
+  L.push('📍 Lehrter Str. 26a, Berlin-Moabit');
+
+  document.getElementById('textPreview').value = L.join('\n');
+  updateCharCount();
+}
+
+function updateCharCount() {
+  document.getElementById('charCount').textContent = document.getElementById('textPreview').value.length + ' Zeichen';
+}
+
+function shareWhatsApp() {
+  window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('textPreview').value), '_blank');
+}
+</script>
+</body>
+</html>
